@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Products - My Store</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <nav>
+      <div class="logo">🛍️ My Store</div>
+      <ul>
+        <li><a href="/">Home</a></li>
+        <li><a href="/products.html">Products</a></li>
+        <li><a href="/add-product.html">Add Product</a></li>
+        <li><a href="/orders.html">Orders</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <main>
+    <h1>Our Products</h1>
+    
+    <div class="search-container">
+      <input 
+        type="text" 
+        id="searchInput" 
+        placeholder="Search for products..." 
+        onkeyup="searchProducts()"
+      >
+    </div>
+
+    <div id="loading" class="loading" style="display: none;">
+      Loading products...
+    </div>
+
+    <div id="error" class="error" style="display: none;"></div>
+
+    <div id="productGrid" class="product-grid">
+      <!-- Products will be loaded here -->
+    </div>
+  </main>
+
+  <script src="script.js"></script>
+  <script>
+    // Load all products when page loads
+    document.addEventListener('DOMContentLoaded', function() {
+      loadProducts();
+    });
+
+    // Search functionality
+    function searchProducts() {
+      const searchTerm = document.getElementById('searchInput').value;
+      loadProducts(searchTerm);
+    }
+
+    // Load products function
+    async function loadProducts(searchTerm = '') {
+      try {
+        showLoading(true);
+        const url = searchTerm ? 
+          `/api/products?search=${encodeURIComponent(searchTerm)}` : 
+          '/api/products';
+        
+        const response = await fetch(url);
+        const products = await response.json();
+        
+        displayProducts(products);
+        showLoading(false);
+      } catch (error) {
+        showError('Failed to load products. Please try again later.');
+        showLoading(false);
+      }
+    }
+
+    // Display products on the page
+    function displayProducts(products) {
+      const productGrid = document.getElementById('productGrid');
+      
+      if (products.length === 0) {
+        productGrid.innerHTML = '<p>No products found.</p>';
+        return;
+      }
+      
+      productGrid.innerHTML = products.map(product => `
+        <div class="product-card">
+          <img src="${product.image}" alt="${product.name}">
+          <div class="product-card-content">
+            <h3>${product.name}</h3>
+            <p>${product.description}</p>
+            <div class="product-price">$${product.price}</div>
+            <p>Category: ${product.category}</p>
+            <p>Stock: ${product.stock} available</p>
+            <button class="btn" onclick="buyProduct('${product._id}')">
+              Buy Now
+            </button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // Buy product function (starts PayPal payment)
+    async function buyProduct(productId) {
+      try {
+        // Get product details
+        const response = await fetch(`/api/products/${productId}`);
+        const product = await response.json();
+        
+        // Create payment
+        const paymentData = {
+          items: [{
+            productId: product._id,
+            productName: product.name,
+            quantity: 1,
+            price: product.price
+          }],
+          totalAmount: product.price,
+          customerEmail: 'customer@example.com' // In real app, get from user
+        };
+        
+        const paymentResponse = await fetch('/api/orders/create-payment', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(paymentData)
+        });
+        
+        const paymentResult = await paymentResponse.json();
+        
+        if (paymentResult.approvalUrl) {
+          // Redirect to PayPal for payment
+          window.location.href = paymentResult.approvalUrl;
+        } else {
+          alert('Payment initialization failed. Please try again.');
+        }
+      } catch (error) {
+        alert('Error processing payment. Please try again.');
+      }
+    }
+
+    // Helper functions
+    function showLoading(show) {
+      document.getElementById('loading').style.display = show ? 'block' : 'none';
+    }
+
+    function showError(message) {
+      const errorDiv = document.getElementById('error');
+      errorDiv.textContent = message;
+      errorDiv.style.display = 'block';
+      setTimeout(() => {
+        errorDiv.style.display = 'none';
+      }, 5000);
+    }
+  </script>
+</body>
+</html>
