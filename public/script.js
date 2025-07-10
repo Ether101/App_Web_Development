@@ -1,6 +1,4 @@
-// Shared utility functions for the e-commerce application
 
-// Format currency
 function formatCurrency(amount) {
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
@@ -17,7 +15,7 @@ function formatDate(dateString) {
   });
 }
 
-// Show loading spinner
+// how loading spinner
 function showLoading(elementId, show = true) {
   const element = document.getElementById(elementId);
   if (element) {
@@ -25,7 +23,7 @@ function showLoading(elementId, show = true) {
   }
 }
 
-// Show error message
+// the  error message
 function showMessage(elementId, message, type = 'error') {
   const element = document.getElementById(elementId);
   if (element) {
